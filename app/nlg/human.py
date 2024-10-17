@@ -2,6 +2,21 @@ import pgf
 from wordnet import *
 from nlg.util import *
 
+def marry(cnc, gender, verb=None):
+    if cnc.name in ["ParseRus"]:
+        if "Q6581072" in gender:
+            if verb == "V2":
+                return w.marry_1b_V2
+            else:
+                return w.marry_1b_V
+    else:
+        if verb == "V2":
+            return w.marry_1a_V2
+        elif verb == "in":
+            return w.marry_in_V
+        else:
+            return w.marry_1a_V
+
 def render(cnc, lexeme, entity):
     yield "<div class='infobox'><table border=1><tr><table>"
     for media,qual in get_medias("P18",entity):
@@ -81,9 +96,10 @@ def render(cnc, lexeme, entity):
             if current_position:
                 if cnc.name in ["ParseRus"]:
                     positions = [mkCN(ap, current_position[0]), ]
-                    positions.extend(current_position[1:])
+                    positions.extend([mkCN(position) for position in current_position[1:]])
                     description = mkCN(w.and_Conj, positions)
                     extra_description = mkCN(w.and_Conj, occupations)
+                    occupations = mkCN(w.and_Conj, occupations)
                 else:
                     description = mkCN(ap, current_position)  # né / nacido
                     extra_description = occupations
@@ -91,14 +107,20 @@ def render(cnc, lexeme, entity):
                 if cnc.name in ["ParseRus"]:
                     positions = [mkCN(ap, occupations[0]), ]
                     positions.extend(occupations[1:])
+                    occupations = mkCN(w.and_Conj, occupations)
                     description = mkCN(w.and_Conj, positions)
                 else:
                     description = mkCN(ap, occupations)
         else:
+            if cnc.name in ["ParseRus"]:
+                occupations = mkCN(w.and_Conj, occupations)
             np = mkNP(w.and_Conj,[mkNP(pn) for pn in ds])
             description = mkCN(occupations,mkAdv(w.from_Prep,np))
             if current_position:
-                description = mkCN(current_position,mkAdv(w.from_Prep,np))
+                if cnc.name in ["ParseRus"]:
+                    description = mkCN(mkCN(w.and_Conj, current_position), mkAdv(w.from_Prep, np))
+                else:
+                    description = mkCN(current_position,mkAdv(w.from_Prep,np))
                 extra_description = occupations
             else:
                 description = mkCN(occupations,mkAdv(w.from_Prep,np))
@@ -348,7 +370,7 @@ def render(cnc, lexeme, entity):
 
     if spouse_novalue:
         spouses = None
-        phr = mkPhr(mkUtt(mkS(useTense, mkCl(mkNP(pron), mkVP(w.never_1_AdV,mkVP(w.marry_in_V))))),fullStopPunct)
+        phr = mkPhr(mkUtt(mkS(useTense, mkCl(mkNP(pron), mkVP(w.never_1_AdV,mkVP(marry(cnc, gender, "in")))))),fullStopPunct)
         yield " "+cnc.linearize(phr)
     else:
         for spouse,start,place,end,end_cause in spouses:
@@ -406,7 +428,7 @@ def render(cnc, lexeme, entity):
                                 if start_date:
                                     stmt = w.ExtAdvS(start_date,stmt)
                         #vp = mkVP(w.marry_1_V2,mkNP(spouse_pron))
-                        vp = mkVP(w.marry_1a_V)
+                        vp = mkVP(marry(cnc, gender, "V2"))
                         #Spanish / French: they married (se casaron/ils se sont mariés)
                         if place:
                             vp = mkVP(vp,mkAdv(place[0]))
@@ -434,9 +456,9 @@ def render(cnc, lexeme, entity):
                         vp = mkVP(mkVP(w.marry_1a_V), mkAdv(w.with_Prep, name))
                     else:
                         name = mkNP(mkCN(description, name))
-                        vp = mkVP(w.marry_1a_V2,name)
+                        vp = mkVP(marry(cnc, gender, "V2"),name)
                 else:
-                    vp = mkVP(w.marry_1a_V2,name)
+                    vp = mkVP(marry(cnc, gender, "V2"),name)
 
                 if place:
                     vp = mkVP(vp,mkAdv(place[0]))

@@ -3,4 +3,4 @@
 args=("$@")
 
 export QUERY_STRING="id=${args[0]}&lang=${args[1]}"
-python3.10 main.py
+python3 main.py

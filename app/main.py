@@ -23,10 +23,7 @@ def autorize(code, start_response):
                 headers={"UserAgent": "GF Wikidata",
                          "Authorization": "token "+token})
   with urllib.request.urlopen(req) as response:
-    txt = response.read()
-    with open("/usr/local/www/gf-wikidata/text.txt", "wb") as f:
-        f.write(txt)
-    res=json.loads(txt)
+    res=json.loads(response.read())
     user = res["login"]
     name = res.get("name")  # if name is missing or if we get "null" value from GitHub
     if not name:

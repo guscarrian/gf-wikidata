@@ -46,6 +46,7 @@ def render(cnc, lexeme, entity):
         useTense = presentTense
         usePastTense = presentTense
         usePastSimpleTense = presentTense
+        usePasseCompose = anteriorAnt
     elif cnc.name in ["ParseSpa"]:
         useTense = presentTense
         usePastTense = pastSimpleTense
@@ -62,7 +63,8 @@ def render(cnc, lexeme, entity):
 
     current_position = []
     prev_position = []
-    for position, qual in cnc.get_lexemes("P39", entity):
+    filter = "Fem" if "Q6581072" in gender else "Masc"
+    for position, qual in cnc.get_lexemes("P39", entity, filter=filter):
         if 'P582' in qual:
             prev_position.append(mkCN(position))
         else:
@@ -75,7 +77,6 @@ def render(cnc, lexeme, entity):
         occupations = [mkCN(occupation) for occupation in
                                         cnc.get_lexemes("P106", entity, qual=False, filter="Masc")]
     else:
-        filter = "Fem" if "Q6581072" in gender else "Masc"
         occupations = mkCN(w.and_Conj,[mkCN(occupation) for occupation in cnc.get_lexemes("P106", entity, qual=False, filter=filter)])
 
     if not occupations:
@@ -249,11 +250,11 @@ def render(cnc, lexeme, entity):
     
 
     # member of - P463
-    institutions = []
+    institutions = set()
     for qid,qual in get_items("P463",entity):
         inst = cnc.get_lex_fun(qid)
         if "P582" not in qual and inst != None:
-            institutions.append(mkNP(inst))
+            institutions.add(mkNP(inst))
 
     if institutions:
         # He/She is a member of [...]
@@ -498,8 +499,11 @@ def render(cnc, lexeme, entity):
 
     if spouses and not children and number_children_prop:
         child_count += number
-        det = mkDet(a_Quant, mkNum(mkNumeral(number))) if number in range(1,10) else mkDet(a_Quant, mkNum(number))
-        phr = mkPhr(mkUtt(mkS(mkCl(mkNP(pron), mkVP(w.have_1_V2, mkNP(det, mkCN(w.child_2_N)))))), fullStopPunct)
+        if number == 0:
+            phr = mkPhr(mkUtt(mkS(negativePol, mkCl(mkNP(pron), mkVP(w.have_1_V2, mkNP(aPl_Det, mkCN(w.child_2_N)))))), fullStopPunct)
+        else:
+            det = mkDet(a_Quant, mkNum(mkNumeral(number))) if number in range(1,10) else mkDet(a_Quant, mkNum(number))
+            phr = mkPhr(mkUtt(mkS(mkCl(mkNP(pron), mkVP(w.have_1_V2, mkNP(det, mkCN(w.child_2_N)))))), fullStopPunct)
         yield " " + cnc.linearize(phr)
 
     for partner,start,end,end_cause in unmarried_partners:
@@ -576,7 +580,7 @@ def render(cnc, lexeme, entity):
                 det = mkDet(a_Quant, mkNum(mkNumeral(other_child))) if other_child in range(1,10) else mkDet(a_Quant, mkNum(other_child))
             else:
                 det = mkDet(a_Quant, w.NumMore(mkNum(mkNumeral(other_child)))) if other_child in range(1,10) else mkDet(a_Quant, w.NumMore(mkNum(other_child)))
-            #[entity] has X child(ren) / [entity] has X more child(ren)
+            # [entity] has X child(ren) / [entity] has X more child(ren)
             phr = mkPhr(mkUtt(mkS(mkCl(lexeme, mkVP(w.have_1_V2, mkNP(det, w.child_2_N))))), fullStopPunct)
             yield " " + cnc.linearize(phr)
 
